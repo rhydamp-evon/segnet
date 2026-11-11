@@ -1,0 +1,52 @@
+{
+  "info": {
+    "name": "SegNet local upload test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Replace sky from local files (no Celery)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "sky_image",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "mode",
+              "value": "preview",
+              "type": "text"
+            },
+            {
+              "key": "tint_val",
+              "value": "100",
+              "type": "text"
+            },
+            {
+              "key": "mod_val",
+              "value": "50",
+              "type": "text"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/api/v1/bluesky/test-local-preview"
+      }
+    }
+  ]
+}

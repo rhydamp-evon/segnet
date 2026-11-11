@@ -1,0 +1,242 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Float four columns side by side */
+    .column {
+        float: left;
+        width: 20%;
+        padding: 0 10px;
+    }
+
+    /* Remove extra left and right margins, due to padding in columns */
+    .row {
+        margin: 0 -5px;
+    }
+
+    /* Clear floats after the columns */
+    .row:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    /* Style the counter cards */
+    .card {
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+        /* this adds the "card" effect */
+        padding: 16px;
+        text-align: center;
+        background-color: #f1f1f1;
+    }
+
+    hr {
+        height: 0px;
+        border: none;
+        border-top: 1px solid black;
+    }
+
+    /* Responsive columns - one column layout (vertical) on small screens */
+    @media screen and (max-width: 600px) {
+        .column {
+            width: 100%;
+            display: block;
+            margin-bottom: 20px;
+        }
+    }
+</style>
+<h1> Dashboard</h1>
+<div class="row">
+    <div class="column">
+        <div class="card">
+            <h3>Total Bluesky Requests</h3>
+            <hr />
+
+            <br>
+            <h3>{{ total_bluesky_requests }}</h3>
+        </div>
+    </div>
+    <div class="column">
+        <div class="card">
+            <h3>Total Variant Requests</h3>
+            <hr />
+            <br>
+            <h3>{{ total_bluesky_variants }}</h3>
+        </div>
+    </div>
+    <div class="column">
+        <div class="card">
+            <h3>Total Processed</h3>
+            <hr />
+            <br>
+            <h3>{{ total_bluesky_processed }}</h3>
+        </div>
+    </div>
+    <div class="column">
+        <div class="card">
+            <h3>Total trainings</h3>
+            <hr />
+            <br>
+            <h3>{{ total_training_session }}</h3>
+
+        </div>
+    </div>
+</div>
+<br>
+
+<div>
+    <h3>Last Bluesky Request</h3>
+    <table style="width:100%">
+        <tr>
+            <th>platform_id</th>
+            <th>content_id</th>
+            <th>original_image_path</th>
+            <th>prediction_mask_path</th>
+        </tr>
+        {% for result in recent_bluesky_requests %}
+        <tr>
+            <td> {{ result.platform_id }}</td>
+            <td> {{ result.content_id }}</td>
+            <td> {{ result.original_image_path }}</td>
+            <td> {{ result.prediction_mask_path }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <h3>Last Bluesky Variant Request</h3>
+    <table style="width:100%">
+        <tr>
+            <th>blue_sky_request id</th>
+            <th>sky_config</th>
+            <th>relative_path_processed</th>
+            <th>is_processed</th>
+        </tr>
+        {% for result in recent_bluesky_variant_requests %}
+        <tr>
+            <td> {{ result.blue_sky_request.id }}</td>
+            <td> {{ result.sky_config.id }}</td>
+            <td> {{ result.relative_path_processed }}</td>
+            <td> {{ result.is_processed }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <h3>Last Bluesky Processed Request</h3>
+    <table style="width:100%">
+        <tr>
+            <th>blue_sky_request</th>
+            <th>original_image_path</th>
+            <th>skyconfig id</th>
+            <th>relative path</th>
+            <th>prediction mask</th>
+            <th>composite image</th>
+            <th>processed</th>
+            <th>api</th>
+        </tr>
+        {% for result in recent_bluesky_processed_requests %}
+        <tr>
+            <td> {{ result.blue_sky_request.id }}</td>
+            <td> {{ result.original_image_path }}</td>
+            <td> {{ result.sky_config.id }}</td>
+            <td> {{ result.relative_path_processed }}</td>
+            <td> {{ result.prediction_mask_path }}</td>
+            <td> {{ result.composite_image_path }}</td>
+            <td> {{ result.is_processed }}</td>
+            <td> {{ result.is_pushed_to_api }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br><br>
+    <div>
+        <h3 style="float: left;">Recent Bluesky Failed Requests</h3>
+        <input type="submit" value="Reprocess Failed" onclick="reProcessFailedImages()" style="float: right;" />
+    </div>
+    <br>
+    <!-- <button id="reprocess-button" onclick="alert(1);"> Reprocess </button> -->
+
+
+    <table style="width:100%">
+        <tr>
+            <th>blue_sky_request</th>
+            <th>original_image_path</th>
+            <th>skyconfig id</th>
+            <th>relative path</th>
+            <th>prediction mask</th>
+            <th>composite image</th>
+            <th>processed</th>
+            <th>api</th>
+        </tr>
+        {% for result in recent_failed_requests %}
+        <tr>
+            <td> {{ result.blue_sky_request.id }}</td>
+            <td> {{ result.original_image_path }}</td>
+            <td> {{ result.sky_config.id }}</td>
+            <td> {{ result.relative_path_processed }}</td>
+            <td> {{ result.prediction_mask_path }}</td>
+            <td> {{ result.composite_image_path }}</td>
+            <td>
+                {% if result.is_processed %}
+                <img src='/static/admin/img/icon-yes.svg' />
+                {% else %}
+                <img src='/static/admin/img/icon-no.svg' />
+                {% endif %}
+            </td>
+            <td>
+                {% if result.is_pushed_to_api %}
+                <img src='/static/admin/img/icon-yes.svg' />
+                {% else %}
+                <img src='/static/admin/img/icon-no.svg' />
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</div>
+
+
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+    function reProcessFailedImages() {
+        $.ajax({
+            type: "POST",
+            url: "/api/v1/bluesky/procesFailedImages",
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            data: JSON.stringify({}),
+            success: function (xhr, status, data) {
+                alert('Started reprocessing');
+            },
+            error: function (xhr, status, error) {
+                if (xhr.status == 400) {
+                    alert("Some Error occoured")
+                }
+
+            }
+
+        });
+    }
+
+</script>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+{% endblock %}

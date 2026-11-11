@@ -1,0 +1,12 @@
+.env
+*.env
+__pycache__/
+*.py[cod]
+*.log
+logs/
+src/logs/
+src/media/
+src/static/
+src/checkpoints/
+src/segnet.zip
+atlentis-segnet-878904/

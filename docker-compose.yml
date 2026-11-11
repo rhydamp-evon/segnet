@@ -1,0 +1,79 @@
+services:
+
+  redis:
+    container_name: atlentis-blue-sky-redis
+    restart: always
+    image: redis:latest
+    volumes:
+      - atlentis-blue-sky-redis-data:/data
+    expose:
+      - "6379"
+
+  db:
+    image: postgres:12.7
+    restart: always
+    env_file:
+      - src/.env
+    volumes:
+      - atlentis-blue-sky-pgdata:/var/lib/postgresql/data/
+
+  web:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    container_name: atlentis-blue-sky-backend
+    image: atlentis-blue-sky-django
+    depends_on:
+      - redis
+      - db
+    links:
+      - redis
+      - db
+    volumes:
+        - ./src:/atlentis-blue-sky/
+        - atlentis-blue-sky-static:/atlentis-blue-sky/static
+        - atlentis-blue-sky-media:/atlentis-blue-sky/media
+    command: bash -c "python manage.py collectstatic --no-input && python manage.py migrate && gunicorn --workers=3 atlentis_ml_api.wsgi -b 0.0.0.0:8000"
+
+  celery:
+    restart: always
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    image: atlentis-blue-sky-django
+    container_name: atlentis-blue-sky-celery
+    command: bash -c "REMAP_SIGTERM=SIGQUIT celery -A atlentis_ml_api worker --loglevel=INFO -n worker@atlentis_ml_api"
+    environment:
+      C_FORCE_ROOT : "true"
+      REMAP_SIGTERM : "SIGQUIT"
+    depends_on:
+      - redis
+      - db
+    links:
+      - redis
+      - db
+    volumes:
+        - ./src:/atlentis-blue-sky/      
+
+  nginx:
+    restart: always
+    container_name: atlentis-blue-sky-nginx
+    image: atlentis-blue-sky-nginx
+    build: ./nginx/
+    volumes:
+      - ./nginx/:/etc/nginx/conf.d
+      - ./logs/:/atlentis-blue-sky/logs
+      - atlentis-blue-sky-static:/atlentis-blue-sky/static
+      - atlentis-blue-sky-media:/atlentis-blue-sky/media
+    ports:
+      - 8080:80
+    links:
+      - web
+    depends_on:
+      - web
+
+volumes:
+  atlentis-blue-sky-redis-data:
+  atlentis-blue-sky-static:
+  atlentis-blue-sky-media:
+  atlentis-blue-sky-pgdata:

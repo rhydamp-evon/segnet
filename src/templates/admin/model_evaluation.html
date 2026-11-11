@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block nav-global %}
+{% endblock %}
+{% block title %}Training Session{% endblock %}
+{% block content %}
+<h1>Results from model - {{ model_name }}</h1>
+<hr />
+<table>
+    <tr>
+        <th>Original</th>
+        <th>mask</th>
+        <th>processed</th>
+    </tr>
+    {% for img in original_images %}
+    <tr>
+        <td>
+            <h5> <a href="{{ img.aws_image_url }}">Image link</a></h5>
+            <a target="_blank" href="{{ img.aws_image_url }}">
+                <img src="{{ img.aws_image_url }}" width="250px" height="250px" />
+            </a>
+        </td>
+        <td>
+            <h5> <a href="{{ img.mask_url }}">Image link</a></h5>
+            <a target="_blank" href="{{ img.mask_url }}">
+                <img src="{{ img.mask_url }}" width="250px" height="250px" />
+            </a>
+        </td>
+        <td>
+            <h5> <a href="{{ img.processed_image_url }}">Image link</a></h5>
+            <a target="_blank" href="{{ img.processed_image_url }}">
+                <img src="{{ img.processed_image_url }}" width="250px" height="250px" />
+            </a>
+        </td>
+    </tr>
+    {% endfor %}
+
+</table>
+
+{% endblock %}

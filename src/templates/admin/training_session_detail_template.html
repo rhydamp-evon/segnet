@@ -1,0 +1,57 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+
+{% if perms.training.view_evaluation_results %}
+<a target="_blank" href="{% url 'training-evaluation-results' pk=train_session_id %}">
+    Click here to view Model Evaluation Results.
+</a>
+{% endif %}
+
+<div class="submit-row">
+    {% if perms.training.evaluate_model %}
+    <input type="submit" value="Evaluate Model." name="evaluate_model">
+    {% endif %}
+    {% if perms.training.deploy_model %}
+    <input type="submit" value="Deploy to sandbox" name="deploy_to_sbx">
+    {% endif %}
+    {% if perms.training.deploy_model %}
+    <input type="submit" value="Deploy to production." name="deploy_to_prod">
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1> Training Stats </h1>
+<hr>
+<h3>Accuracy per Epoch graph</h3>
+<canvas id="accuracyChart" width="500" height="150"></canvas>
+<br /><br />
+<hr>
+<h3>Loss per Epoch graph</h3>
+<canvas id="lossChart" width="500" height="150"></canvas>
+<script type="text/javascript" src="https://code.jquery.com/jquery-1.10.0.min.js"></script>
+<script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>
+<script type="text/javascript">
+    $.get('{% url "accuracy_line_chart_json" pk=train_session_id %}', function (data) {
+        var ctx = $("#accuracyChart").get(0).getContext("2d");
+        new Chart(ctx, {
+            type: 'line',
+            data: data.data,
+            options: data.data.options
+        });
+    });
+
+    $.get('{% url "loss_line_chart_json" pk=train_session_id %}', function (data) {
+        var ctx = $("#lossChart").get(0).getContext("2d");
+        new Chart(ctx, {
+            type: 'line',
+            data: data.data,
+            options: data.data.options
+        });
+    });
+</script>
+{{ block.super }}
+{% endblock %}

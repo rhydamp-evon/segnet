@@ -1,0 +1,45 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+
+{% block content %}
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script>
+
+    function startTraining(id) {
+        var id = id.toString()
+        $.ajax({
+            type: "GET",
+            url: "/api/v1/training/" + id + "/start/",
+            success: function (xhr, status, data) {
+                console.log(xhr.status)
+                alert('Started training');
+            },
+            error: function (xhr, status, error) {
+                if (xhr.status == 400) {
+                    alert("Other training currently active.")
+                }
+            }
+
+        });
+    }
+
+    function stopTraining(id) {
+        var id = id.toString()
+        $.ajax({
+            type: "GET",
+            url: "/api/v1/training/" + id + "/stop/",
+            success: function (result) {
+                alert('Training stopped');
+            },
+            error: function (result) {
+                alert('Error while stoping training.');
+            }
+
+        });
+    }
+
+</script>
+{{ block.super }}
+
+{% endblock %}

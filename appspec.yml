@@ -1,0 +1,17 @@
+version: 0.0
+os: linux
+files:
+   - source: /
+     destination: /home/ubuntu/atlentis-ml-api
+permissions:
+   - object: /home/ubuntu/atlentis-ml-api
+     pattern: "**"
+     owner: ubuntu
+     group: ubuntu
+     mode: 755
+     type:
+       - file
+hooks:
+  AfterInstall:
+    - location: scripts/after_deploy.sh
+      runas: root

@@ -1,0 +1,6 @@
+services:
+  object-editing-gpu-service:
+    build:
+      context: .
+      dockerfile: object_editing_inference/Dockerfile
+    gpus: all

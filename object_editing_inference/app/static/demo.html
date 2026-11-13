@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Object removal demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: #090909;
+      color: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #090909; }
+    button, input, select { font: inherit; }
+    .page { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+    h1 { margin: 0 0 6px; font-size: clamp(1.65rem, 4vw, 2.35rem); }
+    .intro { margin: 0 0 24px; color: #a8a8a8; }
+    .panel { background: #111; border: 1px solid #292929; border-radius: 16px; padding: 18px; }
+    .controls { display: grid; grid-template-columns: 1fr 1.35fr .8fr auto; gap: 12px; align-items: end; }
+    label { display: grid; gap: 7px; color: #cfcfcf; font-size: .9rem; }
+    .step { color: #ee6a1c; font-size: .75rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    input[type="file"], input[type="text"], select {
+      width: 100%; min-height: 44px; padding: 10px 12px; color: #fff;
+      background: #080808; border: 1px solid #383838; border-radius: 9px;
+    }
+    input:disabled, select:disabled { opacity: .55; cursor: not-allowed; }
+    .primary, .action, .object, .save {
+      border: 0; border-radius: 9px; color: #fff; cursor: pointer;
+    }
+    .primary { min-height: 44px; padding: 0 22px; background: #ee5700; font-weight: 700; }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+    .status { min-height: 24px; margin: 14px 2px 0; color: #c7c7c7; }
+    .status.error { color: #ff7c7c; }
+    .scan-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .metric {
+      padding: 7px 10px; border: 1px solid #333; border-radius: 999px;
+      background: #181818; color: #aaa; font-size: .78rem;
+    }
+    .metric strong { color: #f1f1f1; font-weight: 700; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; margin-top: 18px; }
+    .preview-panel h2, .sidebar h2 { margin: 0 0 12px; font-size: 1rem; }
+    .comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+    figure { min-width: 0; margin: 0; }
+    figcaption { margin: 0 0 7px; color: #aaa; font-size: .85rem; }
+    .image-frame {
+      display: grid; place-items: center; position: relative; min-height: 320px; overflow: hidden;
+      border: 1px solid #272727; border-radius: 10px; background: #050505;
+    }
+    canvas, .image-frame img {
+      display: block; width: auto; height: auto; max-width: 100%; max-height: 68vh; object-fit: contain; background: #050505;
+    }
+    .result-placeholder { max-width: 260px; padding: 24px; color: #777; line-height: 1.5; text-align: center; }
+    .result-tools { display: flex; justify-content: flex-end; margin-top: 10px; }
+    .save {
+      display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px;
+      background: #267a45; font-size: .9rem; font-weight: 700; text-decoration: none;
+    }
+    .objects { display: grid; gap: 8px; max-height: 390px; overflow: auto; }
+    .object {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; padding: 11px 12px; text-align: left;
+      background: #191919; border: 1px solid #303030;
+    }
+    .object::before {
+      content: ""; width: 11px; height: 11px; flex: 0 0 11px; margin-right: 9px;
+      border-radius: 50%; background: var(--object-color);
+    }
+    .object span:first-of-type { flex: 1; }
+    .object.selected { border-color: var(--object-color); box-shadow: inset 0 0 0 1px var(--object-color); }
+    .confidence { color: #929292; font-size: .78rem; }
+    .empty { color: #8c8c8c; font-size: .9rem; line-height: 1.5; }
+    .edit-controls { display: grid; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #2b2b2b; }
+    .range-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .check-row {
+      display: flex; grid-template-columns: none; align-items: flex-start; gap: 8px;
+      color: #bdbdbd; font-size: .8rem; line-height: 1.35;
+    }
+    .check-row input { margin-top: 2px; accent-color: #ee5700; }
+    input[type="range"] { width: 100%; accent-color: #ee5700; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .action { min-height: 42px; font-weight: 700; }
+    .remove { background: #c63c2e; }
+    .blur { background: #1769aa; }
+    .hint { margin: 12px 0 0; color: #777; font-size: .78rem; line-height: 1.45; }
+    .busy-overlay {
+      position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+      padding: 24px; background: rgba(0, 0, 0, .76); backdrop-filter: blur(3px);
+    }
+    .busy-card {
+      display: grid; justify-items: center; gap: 14px; width: min(360px, 100%);
+      padding: 28px; border: 1px solid #333; border-radius: 16px; background: #111;
+      text-align: center; box-shadow: 0 18px 70px rgba(0, 0, 0, .45);
+    }
+    .spinner {
+      width: 44px; height: 44px; border: 4px solid #383838; border-top-color: #ee5700;
+      border-radius: 50%; animation: spin .8s linear infinite;
+    }
+    .busy-overlay.complete .spinner {
+      display: grid; place-items: center; border-color: #24d96b; animation: none;
+    }
+    .busy-overlay.complete .spinner::after { content: "✓"; color: #24d96b; font-size: 1.35rem; font-weight: 900; }
+    .busy-card strong { font-size: 1.05rem; }
+    .busy-card span { color: #999; font-size: .86rem; line-height: 1.45; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    [hidden] { display: none !important; }
+    @media (max-width: 900px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .controls, .comparison { grid-template-columns: 1fr; }
+      .image-frame { min-height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Object removal</h1>
+    <p class="intro">Upload, scan for an object, choose detected instances, then remove or blur them.</p>
+
+    <section class="panel">
+      <form id="analyze-form" class="controls">
+        <label>
+          <span class="step">1. Upload image</span>
+          <input id="image-input" name="image" type="file" accept="image/*" required>
+        </label>
+        <label>
+          <span class="step">2. What should be found?</span>
+          <input id="prompt-input" name="prompt" type="text" placeholder="bushes, trees, cars, road" required disabled>
+        </label>
+        <label>
+          <span class="step">Detection model</span>
+          <select id="model-input" name="model_variant">
+            <option value="small" selected>Small — accurate</option>
+            <option value="nano">Nano — faster</option>
+            <option id="sam3-option" value="sam3" disabled>SAM 3 — checking GPU</option>
+          </select>
+        </label>
+        <button id="analyze-button" class="primary" type="submit" disabled>Scan image</button>
+      </form>
+      <div id="status" class="status" role="status">Choose a local image to begin.</div>
+      <div id="scan-summary" class="scan-summary" hidden>
+        <span class="metric">Model: <strong id="summary-model"></strong></span>
+        <span class="metric">AI inference: <strong id="summary-time"></strong></span>
+        <span class="metric">Mask edges: <strong id="summary-refiner"></strong></span>
+        <span class="metric">Prompts used: <strong id="summary-prompts"></strong></span>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace" hidden>
+      <div class="panel preview-panel">
+        <h2>Preview</h2>
+        <div class="comparison">
+          <figure>
+            <figcaption>Current uploaded image</figcaption>
+            <div class="image-frame">
+              <canvas id="canvas"></canvas>
+            </div>
+          </figure>
+          <figure>
+            <figcaption>Edited image</figcaption>
+            <div class="image-frame">
+              <p id="result-placeholder" class="result-placeholder">The edited image will appear here after you select an object and choose Remove or Blur.</p>
+              <img id="result-image" alt="Edited result" hidden>
+            </div>
+            <div class="result-tools">
+              <a id="save-link" class="save" href="#" download="edited-image.png" hidden>Save edited image</a>
+            </div>
+          </figure>
+        </div>
+      </div>
+
+      <aside class="panel sidebar">
+        <h2><span class="step">3. Choose objects</span></h2>
+        <div id="objects" class="objects">
+          <p class="empty">Enter an object name and scan the image first.</p>
+        </div>
+        <div class="edit-controls">
+          <div class="range-row">
+            <label for="blur-strength">Blur strength</label>
+            <output id="blur-value">25</output>
+          </div>
+          <input id="blur-strength" type="range" min="1" max="100" value="25">
+          <label class="check-row">
+            <input id="refine-masks" type="checkbox" checked>
+            Refine selected edges with FBA (about 3 seconds per object on CPU)
+          </label>
+          <div class="actions">
+            <button id="remove-button" class="action remove" type="button" disabled>Remove</button>
+            <button id="blur-button" class="action blur" type="button" disabled>Blur</button>
+          </div>
+        </div>
+        <p class="hint">You can select one or several colored objects. Scan again with another word to replace the detections.</p>
+      </aside>
+    </section>
+
+    <div id="busy-overlay" class="busy-overlay" role="status" aria-live="polite" hidden>
+      <div class="busy-card">
+        <div class="spinner" aria-hidden="true"></div>
+        <strong id="busy-message">AI is scanning the image...</strong>
+        <span>Please keep this page open. CPU processing can take a minute or more.</span>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const palette = ["#24d96b", "#268cff", "#ff7a21", "#d45cff", "#ffe04d", "#00d8d8", "#ff4f87", "#a8e34b"];
+    const state = {
+      analysis: null,
+      image: new Image(),
+      editable: [],
+      selected: new Set(),
+      colors: new Map(),
+      previewUrl: null,
+    };
+    const form = document.querySelector("#analyze-form");
+    const imageInput = document.querySelector("#image-input");
+    const promptInput = document.querySelector("#prompt-input");
+    const modelInput = document.querySelector("#model-input");
+    const sam3Option = document.querySelector("#sam3-option");
+    const analyzeButton = document.querySelector("#analyze-button");
+    const workspace = document.querySelector("#workspace");
+    const statusBox = document.querySelector("#status");
+    const canvas = document.querySelector("#canvas");
+    const context = canvas.getContext("2d");
+    const objectsBox = document.querySelector("#objects");
+    const removeButton = document.querySelector("#remove-button");
+    const blurButton = document.querySelector("#blur-button");
+    const blurStrength = document.querySelector("#blur-strength");
+    const blurValue = document.querySelector("#blur-value");
+    const refineMasks = document.querySelector("#refine-masks");
+    const resultImage = document.querySelector("#result-image");
+    const resultPlaceholder = document.querySelector("#result-placeholder");
+    const saveLink = document.querySelector("#save-link");
+    const busyOverlay = document.querySelector("#busy-overlay");
+    const busyMessage = document.querySelector("#busy-message");
+    const scanSummary = document.querySelector("#scan-summary");
+    const summaryModel = document.querySelector("#summary-model");
+    const summaryTime = document.querySelector("#summary-time");
+    const summaryRefiner = document.querySelector("#summary-refiner");
+    const summaryPrompts = document.querySelector("#summary-prompts");
+
+    function setStatus(message, isError = false) {
+      statusBox.textContent = message;
+      statusBox.classList.toggle("error", isError);
+    }
+
+    function setBusy(isBusy, message = "AI is scanning the image...") {
+      if (isBusy) busyOverlay.classList.remove("complete");
+      busyMessage.textContent = message;
+      busyOverlay.hidden = !isBusy;
+      imageInput.disabled = isBusy;
+      promptInput.disabled = isBusy || !imageInput.files?.length;
+      modelInput.disabled = isBusy;
+      refineMasks.disabled = isBusy;
+      analyzeButton.disabled = isBusy || !imageInput.files?.length;
+    }
+
+    async function loadCapabilities() {
+      try {
+        const health = await responseJson(await fetch("/health"));
+        const available = Boolean(health.demo_models?.sam3);
+        sam3Option.disabled = !available;
+        sam3Option.textContent = available
+          ? "SAM 3 — GPU accurate"
+          : "SAM 3 — requires CUDA GPU";
+      } catch (_) {
+        sam3Option.disabled = true;
+        sam3Option.textContent = "SAM 3 — unavailable";
+      }
+    }
+
+    async function finishBusy(message) {
+      busyOverlay.classList.add("complete");
+      busyMessage.textContent = message;
+      await new Promise((resolve) => window.setTimeout(resolve, 550));
+      setBusy(false);
+    }
+
+    async function responseJson(response) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        let detail = data.detail;
+        if (Array.isArray(detail)) {
+          detail = detail.map((item) => {
+            const field = item.loc?.at(-1) || "request";
+            return `${field}: ${item.msg || "invalid value"}`;
+          }).join("; ");
+        } else if (detail && typeof detail === "object") {
+          detail = JSON.stringify(detail);
+        }
+        throw new Error(detail || "The request failed.");
+      }
+      return data;
+    }
+
+    function loadImage(url, cacheBust = false) {
+      return new Promise((resolve, reject) => {
+        state.image.onload = resolve;
+        state.image.onerror = () => reject(new Error("Could not display the uploaded image."));
+        state.image.src = cacheBust ? `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}` : url;
+      });
+    }
+
+    function clearEditedResult() {
+      resultImage.hidden = true;
+      resultImage.removeAttribute("src");
+      resultPlaceholder.hidden = false;
+      saveLink.hidden = true;
+      saveLink.removeAttribute("href");
+    }
+
+    function draw() {
+      if (!state.image.complete || !state.image.naturalWidth) return;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(state.image, 0, 0, canvas.width, canvas.height);
+      if (!state.analysis) return;
+      const lineWidth = Math.max(3, canvas.width / 350);
+      state.editable.forEach((region) => {
+        const color = state.colors.get(region.region_id);
+        const selected = state.selected.has(region.region_id);
+        (region.overlay.polygons || []).forEach((polygon) => {
+          if (polygon.length < 3) return;
+          context.beginPath();
+          context.moveTo(polygon[0][0], polygon[0][1]);
+          polygon.slice(1).forEach(([x, y]) => context.lineTo(x, y));
+          context.closePath();
+          if (selected) {
+            context.fillStyle = `${color}38`;
+            context.fill();
+          }
+          context.strokeStyle = color;
+          context.lineWidth = selected ? lineWidth * 1.7 : lineWidth;
+          context.stroke();
+        });
+      });
+    }
+
+    function renderObjects() {
+      objectsBox.replaceChildren();
+      const counts = new Map();
+      if (!state.analysis || !state.editable.length) {
+        const empty = document.createElement("p");
+        empty.className = "empty";
+        empty.textContent = state.analysis
+          ? "No matching objects were found. Try a singular name or a synonym."
+          : "Enter an object name and scan the image first.";
+        objectsBox.append(empty);
+      }
+      state.editable.forEach((region) => {
+        const count = (counts.get(region.label) || 0) + 1;
+        counts.set(region.label, count);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "object";
+        button.style.setProperty("--object-color", state.colors.get(region.region_id));
+        button.classList.toggle("selected", state.selected.has(region.region_id));
+        const name = document.createElement("span");
+        name.textContent = `${region.label} ${count}`;
+        const confidence = document.createElement("span");
+        confidence.className = "confidence";
+        confidence.textContent = region.confidence == null ? "" : `${Math.round(region.confidence * 100)}%`;
+        button.append(name, confidence);
+        button.addEventListener("click", () => {
+          if (state.selected.has(region.region_id)) state.selected.delete(region.region_id);
+          else state.selected.add(region.region_id);
+          renderObjects();
+          draw();
+        });
+        objectsBox.append(button);
+      });
+      const hasSelection = state.selected.size > 0;
+      removeButton.disabled = !hasSelection;
+      blurButton.disabled = !hasSelection;
+    }
+
+    imageInput.addEventListener("change", async () => {
+      const file = imageInput.files?.[0];
+      state.analysis = null;
+      state.editable = [];
+      state.selected.clear();
+      state.colors.clear();
+      clearEditedResult();
+      scanSummary.hidden = true;
+      if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+      state.previewUrl = null;
+      promptInput.disabled = !file;
+      analyzeButton.disabled = !file;
+      if (!file) {
+        workspace.hidden = true;
+        setStatus("Choose a local image to begin.");
+        return;
+      }
+      try {
+        state.previewUrl = URL.createObjectURL(file);
+        await loadImage(state.previewUrl);
+        canvas.width = state.image.naturalWidth;
+        canvas.height = state.image.naturalHeight;
+        workspace.hidden = false;
+        renderObjects();
+        draw();
+        setStatus("Preview ready. Enter what you want to find, then click Scan image.");
+        promptInput.focus();
+      } catch (error) {
+        workspace.hidden = true;
+        promptInput.disabled = true;
+        analyzeButton.disabled = true;
+        setStatus(error.message, true);
+      }
+    });
+
+    async function onAnalysisComplete(data) {
+      state.analysis = data;
+      state.editable = data.regions.filter((region) => region.level !== "structure" && region.overlay.polygons?.length);
+      state.colors = new Map(state.editable.map((region, index) => [region.region_id, palette[index % palette.length]]));
+      await loadImage(data.source_image_url, true);
+      canvas.width = state.image.naturalWidth;
+      canvas.height = state.image.naturalHeight;
+      renderObjects();
+      draw();
+      summaryModel.textContent = data.model_version;
+      summaryTime.textContent = `${(data.inference_ms / 1000).toFixed(2)}s`;
+      summaryRefiner.textContent = "Detector mask · optional FBA on edit";
+      summaryPrompts.textContent = data.prompts.join(", ");
+      scanSummary.hidden = false;
+      if (state.editable.length) {
+        setStatus(`${state.editable.length} object${state.editable.length === 1 ? "" : "s"} found. Select the colored objects, then choose Remove or Blur.`);
+      } else {
+        setStatus(`No matching objects found for “${promptInput.value.trim()}”. Try another object name.`);
+      }
+    }
+
+    function onAiError(error) {
+      setStatus(error.message, true);
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!imageInput.files?.length) return;
+      state.analysis = null;
+      state.editable = [];
+      state.selected.clear();
+      clearEditedResult();
+      scanSummary.hidden = true;
+      renderObjects();
+      draw();
+      const requestBody = new FormData(form);
+      setStatus("Scanning on CPU. The first run can take several minutes...");
+      setBusy(true, "AI is detecting objects and refining their mask edges...");
+      try {
+        const data = await responseJson(await fetch("/v1/demo/analyze", {
+          method: "POST",
+          body: requestBody,
+        }));
+        await onAnalysisComplete(data);
+        await finishBusy("Detection completed");
+      } catch (error) {
+        onAiError(error);
+        setBusy(false);
+      }
+    });
+
+    blurStrength.addEventListener("input", () => { blurValue.value = blurStrength.value; });
+
+    async function edit(action) {
+      if (!state.analysis || !state.selected.size) return;
+      removeButton.disabled = true;
+      blurButton.disabled = true;
+      setStatus(action === "remove" ? "Removing the selected objects on CPU..." : "Blurring the selected objects...");
+      const editMessage = refineMasks.checked
+        ? "Refining the selected mask edges before editing..."
+        : (action === "remove" ? "AI is removing the selected objects..." : "Applying blur to the selected objects...");
+      setBusy(true, editMessage);
+      const selected = [...state.selected];
+      const payload = {
+        analysis_id: state.analysis.analysis_id,
+        source_image_hash: state.analysis.source_image_hash,
+        remove_region_ids: action === "remove" ? selected : [],
+        blur_region_ids: action === "blur" ? selected : [],
+        blur_strength: Number(blurStrength.value),
+        refine_masks: refineMasks.checked,
+        regions: state.analysis.regions.map(({ region_id, category_code, level, parent_id, bbox, mask_path }) => ({
+          region_id, category_code, level, parent_id, bbox, mask_path,
+        })),
+      };
+      try {
+        const data = await responseJson(await fetch("/v1/demo/edit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }));
+        const resultUrl = `${data.result_image_url}?t=${Date.now()}`;
+        resultImage.src = resultUrl;
+        resultImage.hidden = false;
+        resultPlaceholder.hidden = true;
+        saveLink.href = data.result_image_url;
+        saveLink.hidden = false;
+        summaryRefiner.textContent = data.mask_refiner_version
+          ? `FBA checked · ${data.refined_regions} refined`
+          : "Detector mask";
+        const refinementText = data.mask_refiner_version
+          ? ` FBA refined ${data.refined_regions} selected mask${data.refined_regions === 1 ? "" : "s"}.`
+          : "";
+        setStatus(`Edit completed with ${data.model_version}.${refinementText} Preview it on the right or save the image.`);
+        await finishBusy(action === "remove" ? "Removal completed" : "Blur completed");
+      } catch (error) {
+        onAiError(error);
+        setBusy(false);
+      } finally {
+        renderObjects();
+      }
+    }
+
+    removeButton.addEventListener("click", () => edit("remove"));
+    blurButton.addEventListener("click", () => edit("blur"));
+    window.addEventListener("beforeunload", () => {
+      if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+    });
+    loadCapabilities();
+  </script>
+</body>
+</html>

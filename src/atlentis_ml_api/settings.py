@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "chartjs",
     "bluesky",
+    "object_editing",
     "adminsortable2",
     "demo",
 ]
@@ -204,6 +205,21 @@ if LOG_TO_SENTRY:
 
 BLUESKY_WEBHOOK_URL = env("BLUESKY_WEBHOOK_URL")
 BLUESKY_WEBHOOK_API_KEY = env("BLUESKY_WEBHOOK_API_KEY")
+
+# Object editing inference runs in its own modern Python/CUDA service.  Keeping
+# these settings optional preserves the existing Blue Sky deployment while the
+# independent worker is rolled out.
+OBJECT_EDITING_INFERENCE_URL = os.environ.get("OBJECT_EDITING_INFERENCE_URL", "")
+OBJECT_EDITING_INFERENCE_API_KEY = os.environ.get(
+    "OBJECT_EDITING_INFERENCE_API_KEY", ""
+)
+OBJECT_EDITING_WEBHOOK_URL = os.environ.get("OBJECT_EDITING_WEBHOOK_URL", "")
+OBJECT_EDITING_WEBHOOK_API_KEY = os.environ.get(
+    "OBJECT_EDITING_WEBHOOK_API_KEY", ""
+)
+OBJECT_EDITING_REQUEST_TIMEOUT = int(
+    os.environ.get("OBJECT_EDITING_REQUEST_TIMEOUT", "300")
+)
 
 
 # Initializing ML model once when application starts.

@@ -55,6 +55,36 @@ services:
     volumes:
         - ./src:/atlentis-blue-sky/      
 
+  object-editing-gpu-service:
+    profiles:
+      - object-editing
+    build:
+      context: .
+      dockerfile: object_editing_inference/Dockerfile.cpu
+    container_name: atlentis-object-editing-inference
+    restart: unless-stopped
+    env_file:
+      - src/.env
+    environment:
+      ENABLE_LOCAL_DEMO: "true"
+      MEDIA_ROOT: /data/media
+      YOLO_MODEL: /data/models/yoloe-26n-seg.pt
+      YOLO_MIN_SCORE: "0.25"
+      MASK_MIN_COMPONENT_AREA: "24"
+      ENABLE_FBA_REFINEMENT: "true"
+      FBA_REFINEMENT_MODEL: /data/legacy-checkpoints/final_fba.pth
+      FBA_EDGE_RADIUS: "8"
+      FBA_MAX_SIZE: "768"
+      FBA_MIN_IOU: "0.75"
+    volumes:
+      - atlentis-blue-sky-media:/data/media
+      - atlentis-object-editing-hf-cache:/root/.cache/huggingface
+      - atlentis-object-editing-models:/data/models
+      - atlentis-object-editing-torch-cache:/root/.cache/torch
+      - ./src/checkpoints:/data/legacy-checkpoints:ro
+    ports:
+      - "8001:80"
+
   nginx:
     restart: always
     container_name: atlentis-blue-sky-nginx
@@ -77,3 +107,6 @@ volumes:
   atlentis-blue-sky-static:
   atlentis-blue-sky-media:
   atlentis-blue-sky-pgdata:
+  atlentis-object-editing-hf-cache:
+  atlentis-object-editing-models:
+  atlentis-object-editing-torch-cache:

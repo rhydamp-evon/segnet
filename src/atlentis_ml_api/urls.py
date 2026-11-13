@@ -35,6 +35,7 @@ def ping(request):
 
 apiurlpatterns = [
     path('bluesky/', include('bluesky.urls')),
+    path('object-editing/', include('object_editing.urls')),
     path('training/', include('training.urls')),
 ]
 

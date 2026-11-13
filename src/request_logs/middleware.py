@@ -30,7 +30,10 @@ class RequestLogMiddleware():
             token = tokens[1]
             prefix = token.split('.')
             prefix = prefix[0] if len(prefix) != 0 else None
-            return prefix
+            # The database column stores at most ten characters. Invalid or
+            # manually entered API keys must not turn a 403 response into a
+            # request-logging database error.
+            return prefix[:10] if prefix else None
         return None
         
     def process_response(self, request, response):

@@ -1,0 +1,29 @@
+FROM python:3.12-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git \
+        libglib2.0-0 \
+        libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /service
+
+COPY object_editing_inference/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir \
+        torch==2.10.0 \
+        torchvision \
+        --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir --no-deps simple-lama-inpainting==0.1.2
+
+COPY object_editing_inference/app ./app
+COPY object_editing_inference/tests ./tests
+COPY src/core/networks/fba_matting ./core/networks/fba_matting
+
+EXPOSE 80
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--workers", "1"]
